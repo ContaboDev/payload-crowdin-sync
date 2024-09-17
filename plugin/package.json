@@ -1,5 +1,5 @@
 {
-  "name": "payload-crowdin-sync",
+  "name": "@contabo/payload-crowdin-sync",
   "version": "0.26.8",
   "description": "Automatically upload/sync localized fields from the default locale to Crowdin. Make these fields read-only in other locales and update them using Crowdin translations.",
   "scripts": {
@@ -8,12 +8,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/thompsonsj/payload-crowdin-sync.git"
+    "url": "git+https://github.com/ContaboDev/payload-crowdin-sync"
   },
   "author": "https://github.com/thompsonsj",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/thompsonsj/payload-crowdin-sync/issues"
+    "url": "https://github.com/ContaboDev/payload-crowdin-sync/issues"
   },
   "dependencies": {
     "tslib": "^2.3.0"
