@@ -1,5 +1,3 @@
-# FORK OF https://www.npmjs.com/package/payload-crowdin-sync TO ADD SUPPORT FOR ORGANIZATIONS
-
 # Payload Crowdin Sync
 
 Automatically upload/sync localized fields from the default locale to Crowdin. Make these fields read-only in other locales and update them using Crowdin translations.
