@@ -1,6 +1,6 @@
 {
   "name": "@contabo/payload-crowdin-sync",
-  "version": "0.26.82",
+  "version": "0.26.83",
   "publishConfig": {
     "access": "public"
   },
