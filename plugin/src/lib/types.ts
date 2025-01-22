@@ -1,4 +1,4 @@
-import { CollectionConfig, Field, RichTextField } from "payload/types";
+import type { CollectionConfig, Field } from "payload";
 import { type SlateToHtmlConfig, type HtmlToSlateConfig } from '@slate-serializers/html'
 import { CrowdinArticleDirectory, CrowdinCollectionDirectory } from "./payload-types";
 
@@ -45,6 +45,7 @@ export interface PluginOptions {
   pluginCollectionAdmin?: CollectionConfig["admin"];
   tabbedUI?: boolean
   lexicalBlockFolderPrefix?: string
+  disableSelfClean?: boolean
 }
 
 export type FieldWithName = Field & { name: string };

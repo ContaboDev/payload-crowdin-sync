@@ -1,11 +1,13 @@
-import {
+import type {
   CollectionAfterChangeHook,
   CollectionConfig,
   Field,
   GlobalConfig,
   GlobalAfterChangeHook,
   PayloadRequest,
-} from "payload/types";
+  CollectionSlug,
+  GlobalSlug,
+} from "payload";
 import { Descendant } from "slate";
 import { PluginOptions } from "../../types";
 import {
@@ -15,9 +17,10 @@ import {
 } from "../../utilities";
 import deepEqual from "deep-equal";
 import { getLocalizedFields } from "../../utilities";
-import { Config } from "payload/config";
-import { isCrowdinActive } from "../../api/helpers";
-import { filesApiByDocument } from "../../api/payload-crowdin-sync/files/by-document";
+import {
+  isCrowdinActive,
+} from "../../api/helpers";
+import { filesApiByDocument } from "../../api/files/by-document";
 
 /**
  * Update Crowdin collections and make updates in Crowdin
@@ -105,12 +108,18 @@ const performAfterChange = async ({
     return doc;
   }
 
+  const sanitizedCollection = global ? req.payload.globals.config.find(config => config.slug === collection.slug) : req.payload.collections[collection.slug].config
+
+  if (!sanitizedCollection) {
+    return doc;
+  }
+
   /**
    * Abort if a document condition has been set and returns false
    */
   const active = isCrowdinActive({
     doc,
-    slug: collection.slug,
+    slug: sanitizedCollection.slug,
     global,
     pluginOptions
   })
@@ -120,7 +129,7 @@ const performAfterChange = async ({
   }
 
   const localizedFields: Field[] = getLocalizedFields({
-    fields: collection.fields,
+    fields: sanitizedCollection.fields,
   });
 
   /**
@@ -160,10 +169,10 @@ const performAfterChange = async ({
   const apiByDocument = new filesApiByDocument(
     {
       document: doc,
-      collectionSlug: collection.slug as keyof Config['collections'] | keyof Config['globals'],
+      collectionSlug: sanitizedCollection.slug as CollectionSlug | GlobalSlug,
       global,
       pluginOptions,
-      payload: req.payload
+      req: req
     },
   );
   const filesApi = await apiByDocument.get()
@@ -176,7 +185,9 @@ const performAfterChange = async ({
         Object.keys(currentCrowdinJsonData).length !== 0) ||
       process.env['PAYLOAD_CROWDIN_SYNC_ALWAYS_UPDATE'] === "true"
     ) {
-      await filesApi.createOrUpdateJsonFile(currentCrowdinJsonData);
+      await filesApi.createOrUpdateJsonFile({
+        fileData: currentCrowdinJsonData
+      });
     }
   };
 
@@ -199,7 +210,7 @@ const performAfterChange = async ({
       doc: previousDoc,
       fields: localizedFields,
     });
-    await Promise.all(Object.keys(currentCrowdinHtmlData).map(async (name) => {
+    await Promise.allSettled(Object.keys(currentCrowdinHtmlData).map(async (name) => {
       const currentValue = currentCrowdinHtmlData[name];
       const prevValue = prevCrowdinHtmlData[name];
       if (
@@ -211,7 +222,7 @@ const performAfterChange = async ({
       await filesApi.createOrUpdateHtmlFile({
         name,
         value: currentValue as Descendant[],
-        collection,
+        collection: sanitizedCollection,
       });
     }));
   };

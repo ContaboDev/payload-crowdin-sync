@@ -1,5 +1,4 @@
-import type { Config } from "payload/config";
-import type { CollectionConfig, GlobalConfig } from "payload/types";
+import type { CollectionConfig, Config, GlobalConfig } from "payload";
 import { isCollectionOrGlobalConfigObject, type PluginOptions } from "./types";
 import {
   getAfterChangeHook,
@@ -14,8 +13,8 @@ import { containsLocalizedFields } from "./utilities";
 import { getReviewTranslationEndpoint } from "./endpoints/globals/reviewTranslation";
 import { getReviewFieldsEndpoint } from "./endpoints/globals/reviewFields";
 import Joi from "joi";
-import { isArray } from "lodash";
 import { crowdinArticleDirectoryFields } from "./fields/crowdinArticleDirectoryFields";
+import { syncTranslations } from "./tasks/sync-translation";
 
 /**
  * This plugin extends all collections that contain localized fields
@@ -101,6 +100,8 @@ export const crowdinSync =
       pluginCollectionAdmin: Joi.object(),
       tabbedUI: Joi.boolean(),
       lexicalBlockFolderPrefix: Joi.string(),
+      /** Prevent the plugin deleting Payload documents it has created in response to Crowdin API responses. */
+      disableSelfClean: Joi.boolean(),
     });
 
     const validate = schema.validate(pluginOptions);
@@ -119,6 +120,13 @@ export const crowdinSync =
       ...config,
       admin: {
         ...(config.admin || {}),
+      },
+      jobs: {
+        ...config.jobs,
+        tasks: [
+          ...config.jobs?.tasks || [],
+          syncTranslations({ pluginOptions }),
+        ]
       },
       collections: [
         ...(config.collections || [])

@@ -1,4 +1,4 @@
-import { Endpoint } from "payload/config";
+import type { Endpoint } from "payload";
 import { PluginOptions } from "../../types";
 import { updatePayloadTranslation } from "../../api/helpers";
 
@@ -11,15 +11,18 @@ export const getReviewTranslationEndpoint = ({
 }): Endpoint => ({
   path: `/:id/${type}`,
   method: "get",
-  handler: async (req, res) => {
+  handler: async (req) => {
+    const locale = req.query['locale']
+    const excludeLocales = locale ? Object.keys(pluginOptions.localeMap || {}).filter(payloadLocale => payloadLocale !== locale) : undefined
     const update = await updatePayloadTranslation({
-      articleDirectoryId: req.params['id'],
+      articleDirectoryId: typeof req.routeParams?.['id'] === 'string' ? req.routeParams['id'] : '',
       pluginOptions,
       payload: req.payload,
       draft: req.query["draft"] === 'true' ? true : false,
       dryRun: type === "update" ? false : true,
+      excludeLocales,
     })
     
-    res.status(update.status).send(update);
+    return Response.json(update);
   },
 });

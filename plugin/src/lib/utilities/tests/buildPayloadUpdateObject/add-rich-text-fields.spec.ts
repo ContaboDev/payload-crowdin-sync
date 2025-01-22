@@ -1,18 +1,13 @@
-import { Block, Field } from "payload/types";
+import type { Field } from "payload";
 import {
-  buildCrowdinJsonObject,
   buildPayloadUpdateObject,
-  getLocalizedFields,
-  restoreOrder,
 } from "../..";
-import { FieldWithName } from "../../../types";
 import {
   field,
   fieldHtmlCrowdinObject,
   fieldJsonCrowdinObject,
   fieldDocValue,
 } from "../fixtures/blocks-field-type.fixture";
-import dot from "dot-object";
 
 describe("fn: buildPayloadUpdateObject: blocks field type", () => {
   it("includes localized fields", () => {

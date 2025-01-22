@@ -1,14 +1,15 @@
-import {
+import type {
   Block,
   CollapsibleField,
   CollectionConfig,
   Field,
   GlobalConfig,
-} from "payload/types";
+} from "payload";
 import deepEqual from "deep-equal";
 import { FieldWithName, type CrowdinHtmlObject } from "../types";
 
-import { get, isEmpty, map, merge, omitBy } from "lodash";
+import {  merge, omitBy } from "es-toolkit";
+import { get, isEmpty, map } from 'es-toolkit/compat'
 import dot from "dot-object";
 
 const localizedFieldTypes = ["richText", "text", "textarea"];
@@ -24,15 +25,17 @@ export const findField = ({
   dotNotation,
   fields,
   firstIteration = true,
+  filterLocalizedFields = true,
 }: {
   dotNotation: string
   fields: Field[]
   firstIteration?: boolean,
+  filterLocalizedFields?: boolean,
 }): Field | undefined => {
-  /** Run through getLocalizedFields to ignore tabs/collapssibles...etc */
-  const localizedFields = firstIteration ? getLocalizedFields({
-    fields
-  }) : fields
+  const localizedFields = getLocalizedFields({
+    fields,
+    isLocalized: (firstIteration && filterLocalizedFields) ? undefined : (field) => !!(field),
+  })
   const keys = dotNotation.split(`.`)
   if (keys.length === 0) {
     return undefined
@@ -182,7 +185,14 @@ export const getLocalizedFields = ({
       (field) =>
         (field as any).type !== "collapsible" && (field as any).type !== "tabs"
     ),
-  ...convertTabs({ fields, isLocalized }),
+  ...convertTabs({
+    fields,
+    callback: (fields) => getLocalizedFields({
+      fields,
+      type,
+      isLocalized,
+    })
+  }),
   // recursion for collapsible field - flatten results into the returned array
   ...getCollapsibleLocalizedFields({ fields, type, isLocalized }),
 ];
@@ -208,13 +218,11 @@ export const getCollapsibleLocalizedFields = ({
 
 export const convertTabs = ({
   fields,
-  type,
-  isLocalized = isLocalizedField,
+  callback,
 }: {
   fields: Field[];
-  type?: "json" | "html";
-  isLocalized?: IsLocalized;
-}): any[] =>
+  callback: (fields: Field[]) => Field[]
+}): Field[] =>
   fields
     .filter((field) => field.type === "tabs")
     .flatMap((field) => {
@@ -235,11 +243,7 @@ export const convertTabs = ({
                 } as Field),
           ];
         }, [] as Field[]);
-        return getLocalizedFields({
-          fields: flattenedFields,
-          type,
-          isLocalized,
-        });
+        return callback(flattenedFields);
       }
       return field;
     });
@@ -293,7 +297,7 @@ export const reLocalizeField = (
   (field as FieldWithName).name !== "id";
 
 const excludeBasedOnDescription = (field: Field) => {
-  const description = get(field, "admin.description", "");
+  const description = `${get(field, "admin.description", "")}`;
   if (description.includes("Not sent to Crowdin. Localize in the CMS.")) {
     return true;
   }
@@ -348,6 +352,12 @@ export const restoreOrder = ({
   if (!document) {
     return updateDocument;
   }
+  // use getLocalizedFields with no type or localization check
+  // gets an appropriate updateDocument structure: flattens collapsible/tag fields
+  fields = getLocalizedFields({
+    fields,
+    isLocalized: (fields) => !!(fields)
+  })
   fields.forEach((field: any) => {
     if (!updateDocument || !updateDocument[field.name]) {
       return;
@@ -411,6 +421,7 @@ export const buildPayloadUpdateObject = ({
   fields,
   topLevel = true,
   document,
+  isLocalized,
 }: {
   crowdinJsonObject: { [key: string]: any };
   crowdinHtmlObject?: CrowdinHtmlObject;
@@ -419,6 +430,7 @@ export const buildPayloadUpdateObject = ({
   /** Flag used internally to filter json fields before recursion. */
   topLevel?: boolean;
   document?: { [key: string]: any };
+  isLocalized?: IsLocalized;
 }) => {
   let response: { [key: string]: any } = {};
   if (crowdinHtmlObject) {
@@ -426,12 +438,11 @@ export const buildPayloadUpdateObject = ({
 
     merge(crowdinJsonObject, destructured);
   }
-  const filteredFields = topLevel
-    ? getLocalizedFields({
-        fields,
-        type: !crowdinHtmlObject ? "json" : undefined,
-      })
-    : fields;
+  const filteredFields = getLocalizedFields({
+    fields,
+    type: topLevel ? (!crowdinHtmlObject ? "json" : undefined) : undefined,
+    isLocalized: topLevel ? isLocalized : (field) => !!(field)
+  });
   filteredFields.forEach((field) => {
     if (!crowdinJsonObject[field.name]) {
       return;
@@ -459,7 +470,7 @@ export const buildPayloadUpdateObject = ({
         // get first and only object key
         const blockType = Object.keys(item)[0];
         const payloadUpdateObject = buildPayloadUpdateObject({
-          crowdinJsonObject: item[blockType],
+          crowdinJsonObject: item[blockType], 
           fields:
             field.blocks.find((block: Block) => block.slug === blockType)
               ?.fields || [],
@@ -499,9 +510,13 @@ export const buildCrowdinJsonObject = ({
   isLocalized?: IsLocalized;
 }) => {
   let response: { [key: string]: any } = {};
-  const filteredFields = topLevel
-    ? getLocalizedFields({ fields, type: "json", isLocalized })
-    : fields;
+  
+  const filteredFields = getLocalizedFields({
+    fields,
+    type: "json",
+    // localization check not needed after `topLevel`, but still need to filter field type.
+    isLocalized: topLevel ? isLocalized : (field) => !!(field),
+  });
   filteredFields.forEach((field) => {
     if (!doc[field.name]) {
       return;
@@ -578,13 +593,13 @@ export const buildCrowdinHtmlObject = ({
 }) => {
   let response: CrowdinHtmlObject  = {};
   // it is convenient to be able to pass all fields - filter in this case
-  const filteredFields = topLevel
-    ? getLocalizedFields({
-      fields,
-      type: "html",
-      isLocalized,
-    })
-    : fields;
+  const filteredFields = getLocalizedFields({
+    fields,
+    type: "html",
+    // localization check not needed after `topLevel`, but still need to filter field type.
+    isLocalized: topLevel ? isLocalized : (field) => !!(field),
+  });
+
   filteredFields.forEach((field) => {
     const name = [prefix, (field as FieldWithName).name]
       .filter((string) => string)
@@ -621,7 +636,7 @@ export const buildCrowdinHtmlObject = ({
       });
       response = {
         ...response,
-        ...merge({}, ...arrayValues),
+        ...merge({}, Object.assign({}, ...arrayValues)),
       };
     } else if (field.type === "blocks") {
       const arrayValues = doc[field.name].map((item: any, index: number) => {
@@ -645,7 +660,7 @@ export const buildCrowdinHtmlObject = ({
       });
       response = {
         ...response,
-        ...merge({}, ...arrayValues),
+        ...merge({}, Object.assign({}, ...arrayValues)),
       };
     } else {
       response[name] = doc[field.name]

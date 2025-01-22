@@ -1,5 +1,5 @@
-import { LexicalRichTextAdapter, SanitizedEditorConfig } from "@payloadcms/richtext-lexical";
-import { Block, RichTextField } from "payload/types";
+import { LexicalRichTextAdapter, SanitizedServerEditorConfig as SanitizedEditorConfig } from "@payloadcms/richtext-lexical";
+import type { BlocksField as BlockField, RichTextField } from "payload";
 import { SerializedRootNode, SerializedLexicalNode } from "lexical"
 import { SerializedBlockNode } from "@payloadcms/richtext-lexical";
 
@@ -7,7 +7,7 @@ const isSerializedBlockNode = (node: SerializedLexicalNode): node is SerializedB
   return node.type === 'block';
 }
 
-export const isLexical = (field: RichTextField): field is RichTextField => field.editor && "editorConfig" in field.editor && "lexical" in (field.editor as LexicalRichTextAdapter).editorConfig || false
+export const isLexical = (field: RichTextField): field is RichTextField => field && field.editor && "editorConfig" in field.editor && "lexical" in (field.editor as LexicalRichTextAdapter).editorConfig || false
 
 export const getLexicalEditorConfig = (field: RichTextField) => {
   if (isLexical(field)) {
@@ -18,8 +18,16 @@ export const getLexicalEditorConfig = (field: RichTextField) => {
   return undefined
 }
 
-export const getLexicalBlockFields = (editorConfig: SanitizedEditorConfig) => editorConfig.resolvedFeatureMap.get('blocks')?.props as {
-  blocks: Block[]
+export const getLexicalBlockFields = (editorConfig: SanitizedEditorConfig): BlockField | undefined => {
+  const blocks = editorConfig.resolvedFeatureMap.get('blocks')
+  if (blocks) {
+    return {
+      blocks: (blocks.sanitizedServerFeatureProps).blocks, 
+      name: "blocks",
+      type: "blocks",
+    }
+  }
+  return undefined
 }
 
 export const extractLexicalBlockContent = (root: SerializedRootNode) => {

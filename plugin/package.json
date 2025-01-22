@@ -1,9 +1,6 @@
 {
   "name": "@contabo/payload-crowdin-sync",
-  "version": "0.26.83",
-  "publishConfig": {
-    "access": "public"
-  },
+  "version": "0.32.0",
   "description": "Automatically upload/sync localized fields from the default locale to Crowdin. Make these fields read-only in other locales and update them using Crowdin translations.",
   "scripts": {
     "test": "node --experimental-vm-modules node_modules/.bin/jest --forceExit --detectOpenHandles",
@@ -11,22 +8,24 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ContaboDev/payload-crowdin-sync"
+    "url": "git+https://github.com/thompsonsj/payload-crowdin-sync.git"
   },
   "author": "https://github.com/thompsonsj",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/ContaboDev/payload-crowdin-sync/issues"
+    "url": "https://github.com/thompsonsj/payload-crowdin-sync/issues"
   },
   "dependencies": {
     "tslib": "^2.3.0"
   },
   "peerDependencies": {
-    "express": "^4.18.2",
-    "payload": "^2",
-    "react": "^16.8.0 || ^17.0.0 || ^18.0.0"
+    "payload": "^3",
+    "@payloadcms/db-mongodb": "^3",
+    "@payloadcms/richtext-lexical": "^3",
+    "@payloadcms/richtext-slate": "^3",
+    "@payloadcms/ui": "^3",
+    "react": "^19.0.0",
+    "lexical": "0.x"
   },
-  "type": "commonjs",
-  "main": "./src/index.js",
-  "typings": "./src/index.d.ts"
+  "type": "module"
 }

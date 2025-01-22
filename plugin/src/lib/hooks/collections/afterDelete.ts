@@ -1,8 +1,10 @@
-import { CollectionAfterDeleteHook } from "payload/types";
-import { payloadCrowdinSyncFilesApi } from "../../api/payload-crowdin-sync/files";
+import type {
+  CollectionAfterDeleteHook,
+  CollectionSlug,
+  GlobalSlug,
+} from "payload";
 import { PluginOptions } from "../../types";
-import { filesApiByDocument } from "../../api/payload-crowdin-sync/files/by-document";
-import { Config } from "payload/config";
+import { filesApiByDocument } from "../../api/files/by-document";
 
 interface CommonArgs {
   pluginOptions: PluginOptions;
@@ -32,10 +34,10 @@ export const getAfterDeleteHook =
     const apiByDocument = new filesApiByDocument(
       {
         document: doc,
-        collectionSlug: collection.slug as keyof Config['collections'] | keyof Config['globals'],
+        collectionSlug: collection.slug as CollectionSlug | GlobalSlug,
         global,
         pluginOptions,
-        payload: req.payload
+        req: req
       },
     );
     const filesApi = await apiByDocument.get()
